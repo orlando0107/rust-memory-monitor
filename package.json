@@ -1,23 +1,22 @@
 {
   "name": "rust-memory-monitor",
   "displayName": "Rust Memory Monitor",
-  "description": "Monitor de memoria para proyectos Rust",
-  "version": "0.0.1",
+  "description": "Monitor de memoria para proyectos Rust que muestra el uso de memoria del sistema, del proyecto y de las variables",
+  "version": "1.0.0",
+  "publisher": "orlando0107",
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onLanguage:rust"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "rust-memory-monitor.startMonitoring",
-        "title": "Iniciar Monitoreo de Memoria"
+        "title": "Iniciar monitoreo de memoria"
       }
     ],
     "viewsContainers": {
@@ -44,17 +43,41 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.60.0",
-    "@types/node": "^16.x",
-    "@typescript-eslint/eslint-plugin": "^5.x",
-    "@typescript-eslint/parser": "^5.x",
-    "eslint": "^8.x",
-    "typescript": "^4.x"
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "14.x",
+    "eslint": "^7.27.0",
+    "@typescript-eslint/eslint-plugin": "^4.26.0",
+    "@typescript-eslint/parser": "^4.26.0",
+    "glob": "^7.1.7",
+    "mocha": "^8.4.0",
+    "typescript": "^4.3.2",
+    "vscode-test": "^1.5.2"
   },
-  "dependencies": {
-    "node-fetch": "^2.6.1"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orlando0107/rust-memory-monitor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/orlando0107/rust-memory-monitor/issues"
+  },
+  "homepage": "https://github.com/orlando0107/rust-memory-monitor#readme",
+  "license": "MIT",
+  "keywords": [
+    "rust",
+    "memory",
+    "monitor",
+    "performance",
+    "debugging"
+  ],
+  "icon": "resources/icon.svg",
+  "galleryBanner": {
+    "color": "#DEA584",
+    "theme": "dark"
   }
 } 
