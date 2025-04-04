@@ -10,6 +10,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'rustMemoryMonitorView';
 
     private _view?: vscode.WebviewView;
+    private _disposables: vscode.Disposable[] = [];
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -29,10 +30,35 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+        // Agregar manejador para abrir archivos
+        const messageHandler = webviewView.webview.onDidReceiveMessage(
+            message => {
+                switch (message.type) {
+                    case 'openFile':
+                        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                        const filePath = vscode.Uri.file(path.join(workspaceRoot, message.file));
+                        vscode.workspace.openTextDocument(filePath).then(doc => {
+                            vscode.window.showTextDocument(doc).then(editor => {
+                                const position = new vscode.Position(message.line - 1, 0);
+                                editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                                editor.selection = new vscode.Selection(position, position);
+                            });
+                        });
+                        break;
+                }
+            }
+        );
+        this._disposables.push(messageHandler);
+
         // Actualizar cada 5 segundos
         setInterval(() => {
             this.updateMemoryInfo();
         }, 5000);
+    }
+
+    dispose() {
+        this._disposables.forEach(d => d.dispose());
+        this._disposables = [];
     }
 
     private formatMemorySize(kb: number): string {
@@ -57,8 +83,8 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
 
     private async analyzeRustVariables(workspaceRoot: string): Promise<{ totalSize: number, variables: any[], typeCounts: any }> {
         try {
-            // Buscar archivos Rust en el proyecto
-            const { stdout } = await execAsync(`find ${workspaceRoot} -name "*.rs" | grep -v "target"`);
+            // Buscar archivos Rust en el proyecto, excluyendo target y dependencias
+            const { stdout } = await execAsync(`find ${workspaceRoot} -name "*.rs" | grep -v "target" | grep -v "Cargo.lock" | grep -v ".cargo"`);
             const rustFiles = stdout.split('\n').filter(file => file.trim() !== '');
             
             let totalSize = 0;
@@ -68,6 +94,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
             // Analizar cada archivo Rust
             for (const file of rustFiles) {
                 const content = fs.readFileSync(file, 'utf8');
+                const relativePath = path.relative(workspaceRoot, file);
                 
                 // Buscar declaraciones de variables con más detalle
                 const varRegex = /(let|const|static|mut)\s+(?:mut\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?::\s*([a-zA-Z0-9_:<>[\],\s]+))?/g;
@@ -77,6 +104,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     const declarationType = match[1]; // let, const, static, mut
                     const varName = match[2];
                     const varType = match[3]?.trim() || 'inferido';
+                    const lineNumber = content.substring(0, match.index).split('\n').length;
                     
                     // Estimar tamaño basado en el tipo
                     let estimatedSize = 0;
@@ -114,7 +142,8 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         declaration: declarationType,
                         type: varType,
                         size: estimatedSize,
-                        file: path.relative(workspaceRoot, file)
+                        file: relativePath,
+                        line: lineNumber
                     });
                 }
             }
@@ -186,8 +215,8 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             totalSize: this.formatMemorySize(Math.ceil(info.totalSize / 1024)) // Convertir bytes a KB
                         }))
                     },
-                    // Lista de variables
-                    variables: variables.slice(0, 10) // Limitar a 10 variables para no sobrecargar
+                    // Lista de variables - ahora sin límite
+                    variables: variables
                 }
             });
         } catch (error) {
@@ -237,19 +266,22 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         margin-bottom: 8px;
                         color: var(--vscode-textLink-foreground);
                     }
+                    .variables-container {
+                        width: 100%;
+                        overflow-x: auto;
+                        margin-top: 10px;
+                    }
                     .variables-table {
                         width: 100%;
+                        min-width: 800px; /* Asegura un ancho mínimo para mejor legibilidad */
                         border-collapse: collapse;
-                        margin-top: 10px;
                         font-size: 12px;
                     }
-                    .variables-table th, .variables-table td {
-                        border: 1px solid var(--vscode-panel-border);
-                        padding: 4px;
-                        text-align: left;
-                    }
                     .variables-table th {
+                        position: sticky;
+                        top: 0;
                         background-color: var(--vscode-editor-inactiveSelectionBackground);
+                        z-index: 1;
                     }
                     .type-counts {
                         margin-top: 10px;
@@ -284,6 +316,18 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     }
                     .usage-value {
                         font-weight: 600;
+                    }
+                    .variable-link {
+                        color: var(--vscode-textLink-foreground);
+                        text-decoration: none;
+                        cursor: pointer;
+                    }
+                    .variable-link:hover {
+                        text-decoration: underline;
+                    }
+                    .file-info {
+                        font-size: 11px;
+                        color: var(--vscode-descriptionForeground);
                     }
                 </style>
             </head>
@@ -331,22 +375,23 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             </div>
                         </div>
                         
-                        <table class="variables-table">
-                            <thead>
-                                <tr>
-                                    <th>Variable</th>
-                                    <th>Declaración</th>
-                                    <th>Tipo</th>
-                                    <th>Tamaño</th>
-                                    <th>Archivo</th>
-                                </tr>
-                            </thead>
-                            <tbody id="variablesTableBody">
-                                <tr>
-                                    <td colspan="5">Cargando...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="variables-container">
+                            <table class="variables-table">
+                                <thead>
+                                    <tr>
+                                        <th>Variable</th>
+                                        <th>Declaración</th>
+                                        <th>Tipo</th>
+                                        <th>Tamaño</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="variablesTableBody">
+                                    <tr>
+                                        <td colspan="4">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <script>
@@ -411,17 +456,32 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                                     message.data.variables.forEach(variable => {
                                         const row = document.createElement('tr');
                                         row.innerHTML = \`
-                                            <td>\${variable.name}</td>
+                                            <td>
+                                                <a class="variable-link" data-file="\${variable.file}" data-line="\${variable.line}">\${variable.name}</a>
+                                                <div class="file-info">\${variable.file}:\${variable.line}</div>
+                                            </td>
                                             <td>\${variable.declaration}</td>
                                             <td>\${variable.type}</td>
                                             <td>\${variable.size} bytes</td>
-                                            <td>\${variable.file}</td>
                                         \`;
                                         tableBody.appendChild(row);
                                     });
+
+                                    // Agregar event listeners para los enlaces
+                                    document.querySelectorAll('.variable-link').forEach(link => {
+                                        link.addEventListener('click', () => {
+                                            const file = link.getAttribute('data-file');
+                                            const line = parseInt(link.getAttribute('data-line'));
+                                            vscode.postMessage({
+                                                type: 'openFile',
+                                                file: file,
+                                                line: line
+                                            });
+                                        });
+                                    });
                                 } else {
                                     const row = document.createElement('tr');
-                                    row.innerHTML = '<td colspan="5">No se encontraron variables</td>';
+                                    row.innerHTML = '<td colspan="4">No se encontraron variables</td>';
                                     tableBody.appendChild(row);
                                 }
                                 break;
