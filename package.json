@@ -1,0 +1,60 @@
+{
+  "name": "rust-memory-monitor",
+  "displayName": "Rust Memory Monitor",
+  "description": "Monitor de memoria para proyectos Rust",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:rust"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rust-memory-monitor.startMonitoring",
+        "title": "Iniciar Monitoreo de Memoria"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "rust-memory-monitor",
+          "title": "Rust Memory Monitor",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "rust-memory-monitor": [
+        {
+          "type": "webview",
+          "id": "rustMemoryMonitorView",
+          "name": "Monitor de Memoria"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.x",
+    "@typescript-eslint/eslint-plugin": "^5.x",
+    "@typescript-eslint/parser": "^5.x",
+    "eslint": "^8.x",
+    "typescript": "^4.x"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+} 

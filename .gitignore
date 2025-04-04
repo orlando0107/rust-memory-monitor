@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+.npm
+
+# Archivos de compilación
+out/
+dist/
+*.vsix
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Sistema operativo
+.DS_Store
+Thumbs.db 
