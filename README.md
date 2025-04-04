@@ -130,7 +130,7 @@ Las contribuciones son bienvenidas. Por favor, abre un issue para discutir los c
 
 MIT License
 
-Copyright (c) 2024 [Tu Nombre]
+Copyright (c) 2024 [OrlandoCV]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
