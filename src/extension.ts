@@ -273,8 +273,9 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     }
                     .variables-table {
                         width: 100%;
-                        min-width: 800px; /* Asegura un ancho mínimo para mejor legibilidad */
-                        border-collapse: collapse;
+                        min-width: 600px; /* Reducido el ancho mínimo */
+                        border-collapse: separate;
+                        border-spacing: 0;
                         font-size: 12px;
                     }
                     .variables-table th {
@@ -282,6 +283,30 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         top: 0;
                         background-color: var(--vscode-editor-inactiveSelectionBackground);
                         z-index: 1;
+                        padding: 4px 8px;
+                        text-align: left;
+                        border-bottom: 1px solid var(--vscode-panel-border);
+                        user-select: none;
+                    }
+                    .variables-table td {
+                        padding: 4px 8px;
+                        border-bottom: 1px solid var(--vscode-panel-border);
+                    }
+                    .resizer {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        width: 5px;
+                        height: 100%;
+                        background: var(--vscode-panel-border);
+                        cursor: col-resize;
+                    }
+                    .resizer:hover {
+                        background: var(--vscode-focusBorder);
+                    }
+                    .th-content {
+                        position: relative;
+                        padding-right: 15px; /* Espacio para el resizer */
                     }
                     .type-counts {
                         margin-top: 10px;
@@ -414,10 +439,10 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             <table class="variables-table">
                                 <thead>
                                     <tr>
-                                        <th>Variable</th>
-                                        <th>Declaración</th>
-                                        <th>Tipo</th>
-                                        <th>Tamaño</th>
+                                        <th><div class="th-content">Variable</div><div class="resizer"></div></th>
+                                        <th><div class="th-content">Declaración</div><div class="resizer"></div></th>
+                                        <th><div class="th-content">Tipo</div><div class="resizer"></div></th>
+                                        <th><div class="th-content">Tamaño</div><div class="resizer"></div></th>
                                     </tr>
                                 </thead>
                                 <tbody id="variablesTableBody">
@@ -481,6 +506,9 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             row.innerHTML = '<td colspan="4" class="no-results">No se encontraron variables que coincidan con la búsqueda</td>';
                             tableBody.appendChild(row);
                         }
+
+                        // Inicializar resizers después de actualizar la tabla
+                        initializeResizers();
                     }
 
                     // Agregar event listener para la búsqueda
@@ -489,6 +517,37 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         const filteredVariables = filterVariables(searchTerm);
                         updateVariablesTable(filteredVariables);
                     });
+
+                    // Agregar funcionalidad de redimensionamiento
+                    function initializeResizers() {
+                        const resizers = document.querySelectorAll('.resizer');
+                        resizers.forEach(resizer => {
+                            let x = 0;
+                            let w = 0;
+
+                            const mouseDownHandler = (e) => {
+                                x = e.clientX;
+                                const th = resizer.parentElement;
+                                w = th.offsetWidth;
+                                
+                                document.addEventListener('mousemove', mouseMoveHandler);
+                                document.addEventListener('mouseup', mouseUpHandler);
+                            };
+
+                            const mouseMoveHandler = (e) => {
+                                const dx = e.clientX - x;
+                                const th = resizer.parentElement;
+                                th.style.width = \`\${w + dx}px\`;
+                            };
+
+                            const mouseUpHandler = () => {
+                                document.removeEventListener('mousemove', mouseMoveHandler);
+                                document.removeEventListener('mouseup', mouseUpHandler);
+                            };
+
+                            resizer.addEventListener('mousedown', mouseDownHandler);
+                        });
+                    }
 
                     window.addEventListener('message', event => {
                         const message = event.data;
