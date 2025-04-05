@@ -109,8 +109,6 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     // Estimar tamaño basado en el tipo
                     let estimatedSize = this.estimateTypeSize(varType);
                     
-                    totalSize += estimatedSize;
-                    
                     // Contar tipos de variables
                     const typeKey = `${declarationType} ${varType}`;
                     if (!typeCounts[typeKey]) {
@@ -118,6 +116,11 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     }
                     typeCounts[typeKey].count++;
                     typeCounts[typeKey].totalSize += estimatedSize;
+                    
+                    // Agregar al total solo si es una variable que probablemente esté en memoria
+                    if (declarationType !== 'const') {
+                        totalSize += estimatedSize;
+                    }
                     
                     variables.push({
                         name: varName,
@@ -239,11 +242,11 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     // Información de variables
                     variablesInfo: {
                         totalCount: variables.length,
-                        totalSize: this.formatMemorySize(Math.ceil(totalSize / 1024)), // Convertir bytes a KB
+                        totalSize: totalSize, // Enviar el tamaño en bytes
                         typeCounts: Object.entries(typeCounts).map(([type, info]: [string, any]) => ({
                             type,
                             count: info.count,
-                            totalSize: this.formatMemorySize(Math.ceil(info.totalSize / 1024)) // Convertir bytes a KB
+                            totalSize: info.totalSize // Enviar el tamaño en bytes
                         }))
                     },
                     // Lista de variables - ahora sin límite
@@ -609,7 +612,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                                 
                                 // Actualizar información de variables
                                 document.getElementById('variablesCount').textContent = message.data.variablesInfo.totalCount;
-                                document.getElementById('variablesTotal').textContent = message.data.variablesInfo.totalSize;
+                                document.getElementById('variablesTotal').textContent = message.data.variablesInfo.totalSize + ' bytes';
                                 
                                 // Actualizar conteo de tipos
                                 const typeCountsContainer = document.getElementById('typeCounts');
@@ -621,7 +624,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                                         typeItem.className = 'type-count-item';
                                         typeItem.innerHTML = \`
                                             <span>\${typeInfo.type} (\${typeInfo.count})</span>
-                                            <span>\${typeInfo.totalSize}</span>
+                                            <span>\${typeInfo.totalSize} bytes</span>
                                         \`;
                                         typeCountsContainer.appendChild(typeItem);
                                     });
