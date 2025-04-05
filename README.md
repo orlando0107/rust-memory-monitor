@@ -1,6 +1,6 @@
 # Rust Memory Monitor
 
-![Rust Memory Monitor](resources/icon.svg)
+![Rust Memory Monitor](resources/icon.png)
 
 Una extensión para Visual Studio Code que monitorea el uso de memoria en proyectos Rust, proporcionando información detallada sobre el consumo de memoria del sistema, del proyecto y de las variables.
 

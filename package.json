@@ -3,7 +3,7 @@
   "displayName": "Rust Memory Monitor",
   "description": "Monitor de memoria para proyectos Rust que muestra el uso de memoria del sistema, del proyecto y de las variables",
   "version": "1.0.5",
-  "publisher": "orlando0107",
+  "publisher": "RustMemoryMonitor",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -15,21 +15,21 @@
   "contributes": {
     "commands": [
       {
-        "command": "rust-memory-monitor.startMonitoring",
+        "command": "RustMemoryMonitor.rust-memory-monitor.startMonitoring",
         "title": "Iniciar monitoreo de memoria"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "rust-memory-monitor",
+          "id": "RustMemoryMonitor",
           "title": "Rust Memory Monitor",
-          "icon": "resources/icon.svg"
+          "icon": "resources/icon.png"
         }
       ]
     },
     "views": {
-      "rust-memory-monitor": [
+      "RustMemoryMonitor": [
         {
           "type": "webview",
           "id": "rustMemoryMonitorView",
@@ -75,7 +75,7 @@
     "performance",
     "debugging"
   ],
-  "icon": "resources/icon.svg",
+  "icon": "resources/icon.png",
   "galleryBanner": {
     "color": "#DEA584",
     "theme": "dark"
