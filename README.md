@@ -148,4 +148,37 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. 
+SOFTWARE.
+
+## Historial de Cambios
+
+### v1.0.0 (2024-04-04)
+- Versión inicial del Rust Memory Monitor
+- Implementación básica del monitor de memoria
+- Monitoreo de memoria del sistema y proceso
+- Análisis básico de variables Rust
+- Interfaz web básica
+
+### v1.0.1 (2024-04-04)
+- Corrección del nombre en la licencia
+- Mejoras en la documentación
+
+### v1.0.2 (2024-04-04)
+- Mejoras en la interfaz de usuario
+- Optimizaciones de rendimiento
+- Mejor visualización de datos
+
+### v1.0.3 (2024-04-04)
+- Soporte mejorado para análisis de variables por módulo
+- Mejora en la detección de variables
+- Optimización del análisis de código
+
+### v1.0.4 (2024-04-04)
+- Implementación de funcionalidad de búsqueda
+- Filtrado de variables en tiempo real
+- Mejora en la experiencia de usuario
+
+### v1.0.5 (2024-04-04)
+- Corrección de problemas de redimensionamiento
+- Mejoras en la interfaz de usuario
+- Optimización del rendimiento 
