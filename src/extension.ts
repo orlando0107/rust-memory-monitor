@@ -107,25 +107,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     const lineNumber = content.substring(0, match.index).split('\n').length;
                     
                     // Estimar tamaño basado en el tipo
-                    let estimatedSize = 0;
-                    
-                    if (varType.includes('String') || varType.includes('Vec')) {
-                        estimatedSize = 24; // Tamaño base para String y Vec
-                    } else if (varType.includes('i32') || varType.includes('u32') || varType.includes('f32')) {
-                        estimatedSize = 4;
-                    } else if (varType.includes('i64') || varType.includes('u64') || varType.includes('f64')) {
-                        estimatedSize = 8;
-                    } else if (varType.includes('bool')) {
-                        estimatedSize = 1;
-                    } else if (varType.includes('char')) {
-                        estimatedSize = 4;
-                    } else if (varType.includes('Option')) {
-                        estimatedSize = 24; // Tamaño para Option
-                    } else if (varType.includes('Result')) {
-                        estimatedSize = 24; // Tamaño para Result
-                    } else {
-                        estimatedSize = 8; // Tamaño predeterminado
-                    }
+                    let estimatedSize = this.estimateTypeSize(varType);
                     
                     totalSize += estimatedSize;
                     
@@ -153,6 +135,55 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
             console.error('Error al analizar variables Rust:', error);
             return { totalSize: 0, variables: [], typeCounts: {} };
         }
+    }
+
+    private estimateTypeSize(type: string): number {
+        // Tipos enteros con signo
+        if (type.includes('i8')) return 1;
+        if (type.includes('i16')) return 2;
+        if (type.includes('i32')) return 4;
+        if (type.includes('i64')) return 8;
+        if (type.includes('i128')) return 16;
+        if (type.includes('isize')) return 8; // En sistemas de 64 bits
+
+        // Tipos enteros sin signo
+        if (type.includes('u8')) return 1;
+        if (type.includes('u16')) return 2;
+        if (type.includes('u32')) return 4;
+        if (type.includes('u64')) return 8;
+        if (type.includes('u128')) return 16;
+        if (type.includes('usize')) return 8; // En sistemas de 64 bits
+
+        // Tipos de punto flotante
+        if (type.includes('f32')) return 4;
+        if (type.includes('f64')) return 8;
+
+        // Tipos booleanos y caracteres
+        if (type.includes('bool')) return 1;
+        if (type.includes('char')) return 4;
+
+        // Tipos de punteros y referencias
+        if (type.includes('&str') || type.includes('&[u8]')) return 16;
+        if (type.includes('Box')) return 8;
+        if (type.includes('&')) return 8; // Referencias son punteros
+
+        // Tipos compuestos
+        if (type.includes('String')) return 24;
+        if (type.includes('Vec')) return 24;
+        if (type.includes('Option')) return 24;
+        if (type.includes('Result')) return 24;
+        if (type.includes('[u8;')) {
+            // Extraer el tamaño del array si está especificado
+            const match = type.match(/\[u8;(\d+)\]/);
+            if (match) {
+                return parseInt(match[1]);
+            }
+            return 24;
+        }
+
+        // Tipos personalizados (structs, enums)
+        // Por ahora usamos un tamaño predeterminado
+        return 8;
     }
 
     private async updateMemoryInfo() {
