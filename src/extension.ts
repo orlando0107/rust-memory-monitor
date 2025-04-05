@@ -50,10 +50,52 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
         );
         this._disposables.push(messageHandler);
 
-        // Actualizar cada 5 segundos
+        // Configurar el file watcher para archivos Rust
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (workspaceRoot) {
+            const watcher = vscode.workspace.createFileSystemWatcher(
+                new vscode.RelativePattern(workspaceRoot, '**/*.rs')
+            );
+
+            // Actualizar cuando se crea, modifica o elimina un archivo
+            watcher.onDidCreate(() => {
+                console.log('Archivo Rust creado');
+                this.updateMemoryInfo();
+            });
+            watcher.onDidChange(() => {
+                console.log('Archivo Rust modificado');
+                this.updateMemoryInfo();
+            });
+            watcher.onDidDelete(() => {
+                console.log('Archivo Rust eliminado');
+                this.updateMemoryInfo();
+            });
+
+            this._disposables.push(watcher);
+        }
+
+        // Observar cambios en el editor
+        const editorWatcher = vscode.window.onDidChangeActiveTextEditor(() => {
+            console.log('Editor activo cambiado');
+            this.updateMemoryInfo();
+        });
+        this._disposables.push(editorWatcher);
+
+        const documentWatcher = vscode.workspace.onDidChangeTextDocument((event) => {
+            if (event.document.fileName.endsWith('.rs')) {
+                console.log('Documento Rust modificado:', event.document.fileName);
+                this.updateMemoryInfo();
+            }
+        });
+        this._disposables.push(documentWatcher);
+
+        // Actualizar cada 2 segundos
         setInterval(() => {
             this.updateMemoryInfo();
-        }, 5000);
+        }, 2000);
+
+        // Actualización inicial
+        this.updateMemoryInfo();
     }
 
     dispose() {
@@ -97,34 +139,45 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                 const relativePath = path.relative(workspaceRoot, file);
                 
                 // Buscar declaraciones de variables con más detalle
-                const varRegex = /(let|const|static|mut)\s+(?:mut\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?::\s*([a-zA-Z0-9_:<>[\],\s]+))?/g;
+                const varRegex = /(let|const|static)\s+(mut\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?::\s*([a-zA-Z0-9_:<>[\],\s]+))?/g;
                 let match;
                 
                 while ((match = varRegex.exec(content)) !== null) {
-                    const declarationType = match[1]; // let, const, static, mut
-                    const varName = match[2];
-                    const varType = match[3]?.trim() || 'inferido';
+                    const declarationType = match[1]; // let, const, static
+                    const isMut = match[2] ? true : false; // Verifica si tiene mut
+                    const varName = match[3];
+                    const varType = match[4]?.trim() || 'inferido';
                     const lineNumber = content.substring(0, match.index).split('\n').length;
+                    
+                    // Verificar si la variable está comentada
+                    const lineContent = content.split('\n')[lineNumber - 1];
+                    if (lineContent.trim().startsWith('//')) {
+                        continue; // Ignorar variables comentadas
+                    }
                     
                     // Estimar tamaño basado en el tipo
                     let estimatedSize = this.estimateTypeSize(varType);
                     
                     // Contar tipos de variables
-                    const typeKey = `${declarationType} ${varType}`;
+                    const typeKey = `${varType}`;
                     if (!typeCounts[typeKey]) {
                         typeCounts[typeKey] = { count: 0, totalSize: 0 };
                     }
                     typeCounts[typeKey].count++;
                     typeCounts[typeKey].totalSize += estimatedSize;
                     
-                    // Agregar al total solo si es una variable que probablemente esté en memoria
-                    if (declarationType !== 'const') {
-                        totalSize += estimatedSize;
+                    // Agregar al total
+                    totalSize += estimatedSize;
+                    
+                    // Determinar el tipo de declaración completo
+                    let fullDeclaration = declarationType;
+                    if (isMut) {
+                        fullDeclaration += ' mut';
                     }
                     
                     variables.push({
                         name: varName,
-                        declaration: declarationType,
+                        declaration: fullDeclaration,
                         type: varType,
                         size: estimatedSize,
                         file: relativePath,
@@ -132,6 +185,12 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     });
                 }
             }
+            
+            console.log('Análisis de variables completado:', {
+                archivosAnalizados: rustFiles.length,
+                variablesEncontradas: variables.length,
+                tamañoTotal: totalSize
+            });
             
             return { totalSize, variables, typeCounts };
         } catch (error) {
@@ -195,15 +254,17 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
         }
 
         try {
-            // Obtener información de memoria del proceso Rust
-            const { stdout } = await execAsync('ps -o rss,vsize,pmem,pcpu -p $(pgrep -f "target/debug")');
-            const memoryInfo = stdout.split('\n')[1].trim().split(/\s+/);
+            console.log('Iniciando actualización de información de memoria...');
             
             // Obtener la raíz del workspace
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
             
-            // Analizar variables Rust
+            // Analizar variables Rust primero
             const { totalSize, variables, typeCounts } = await this.analyzeRustVariables(workspaceRoot);
+            
+            // Obtener información de memoria del proceso Rust
+            const { stdout } = await execAsync('ps -o rss,vsize,pmem,pcpu -p $(pgrep -f "target/debug")');
+            const memoryInfo = stdout.split('\n')[1].trim().split(/\s+/);
             
             // Obtener información del sistema
             const { stdout: freeInfo } = await execAsync('free -k');
@@ -218,10 +279,16 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
             const systemUsedPercentage = (parseInt(memInfo[2]) / parseInt(memInfo[1])) * 100;
             const processMemoryPercentage = (projectRSS / parseInt(memInfo[1])) * 100;
             
+            console.log('Actualizando información de memoria:', {
+                totalVariables: variables.length,
+                totalSize,
+                projectRSS,
+                projectTotalMemory
+            });
+
             this._view.webview.postMessage({
                 type: 'updateMemory',
                 data: {
-                    // Memoria del proceso Rust
                     processMemory: {
                         rss: this.formatMemorySize(parseInt(memoryInfo[0])),
                         vsize: this.formatMemorySize(parseInt(memoryInfo[1])),
@@ -231,7 +298,6 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         percentage: processMemoryPercentage.toFixed(2),
                         color: this.getUsageColor(processMemoryPercentage)
                     },
-                    // Memoria del sistema
                     systemMemory: {
                         total: this.formatMemorySize(parseInt(memInfo[1])),
                         used: this.formatMemorySize(parseInt(memInfo[2])),
@@ -239,17 +305,15 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         percentage: systemUsedPercentage.toFixed(2),
                         color: this.getUsageColor(systemUsedPercentage)
                     },
-                    // Información de variables
                     variablesInfo: {
                         totalCount: variables.length,
-                        totalSize: totalSize, // Enviar el tamaño en bytes
+                        totalSize: totalSize,
                         typeCounts: Object.entries(typeCounts).map(([type, info]: [string, any]) => ({
                             type,
                             count: info.count,
-                            totalSize: info.totalSize // Enviar el tamaño en bytes
+                            totalSize: info.totalSize
                         }))
                     },
-                    // Lista de variables - ahora sin límite
                     variables: variables
                 }
             });
@@ -270,44 +334,60 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     body {
                         padding: 10px;
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                        color: var(--vscode-foreground);
+                        font-size: 13px;
                     }
                     .memory-info {
                         margin: 10px 0;
-                        padding: 10px;
+                        padding: 15px;
                         background-color: var(--vscode-editor-background);
                         border: 1px solid var(--vscode-panel-border);
-                        border-radius: 4px;
+                        border-radius: 6px;
                     }
                     .memory-info h3 {
-                        margin: 0 0 10px 0;
+                        margin: 0 0 15px 0;
                         color: var(--vscode-foreground);
                         font-size: 14px;
                         font-weight: 600;
                     }
                     .memory-info p {
-                        margin: 5px 0;
+                        margin: 8px 0;
                         color: var(--vscode-foreground);
                         font-size: 12px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
                     }
                     .section {
-                        margin-bottom: 15px;
-                        padding: 10px;
+                        margin-bottom: 20px;
+                        padding: 15px;
                         border: 1px solid var(--vscode-panel-border);
-                        border-radius: 4px;
+                        border-radius: 6px;
+                        background-color: var(--vscode-editor-background);
                     }
                     .section-title {
                         font-weight: 600;
-                        margin-bottom: 8px;
+                        margin-bottom: 12px;
                         color: var(--vscode-textLink-foreground);
+                        font-size: 13px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .section-title::before {
+                        content: "📊";
+                        font-size: 14px;
                     }
                     .variables-container {
                         width: 100%;
                         overflow-x: auto;
-                        margin-top: 10px;
+                        margin-top: 15px;
+                        border-radius: 4px;
+                        background-color: var(--vscode-editor-background);
                     }
                     .variables-table {
                         width: 100%;
-                        min-width: 600px; /* Reducido el ancho mínimo */
+                        min-width: 600px;
                         border-collapse: separate;
                         border-spacing: 0;
                         font-size: 12px;
@@ -317,49 +397,46 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         top: 0;
                         background-color: var(--vscode-editor-inactiveSelectionBackground);
                         z-index: 1;
-                        padding: 4px 8px;
+                        padding: 8px 12px;
                         text-align: left;
                         border-bottom: 1px solid var(--vscode-panel-border);
                         user-select: none;
+                        font-weight: 600;
+                        font-size: 12px;
                     }
                     .variables-table td {
-                        padding: 4px 8px;
+                        padding: 8px 12px;
                         border-bottom: 1px solid var(--vscode-panel-border);
+                        font-size: 12px;
                     }
-                    .resizer {
-                        position: absolute;
-                        top: 0;
-                        right: 0;
-                        width: 5px;
-                        height: 100%;
-                        background: var(--vscode-panel-border);
-                        cursor: col-resize;
-                    }
-                    .resizer:hover {
-                        background: var(--vscode-focusBorder);
-                    }
-                    .th-content {
-                        position: relative;
-                        padding-right: 15px; /* Espacio para el resizer */
+                    .variables-table tr:hover {
+                        background-color: var(--vscode-list-hoverBackground);
                     }
                     .type-counts {
-                        margin-top: 10px;
+                        margin-top: 15px;
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                        gap: 10px;
                     }
                     .type-count-item {
                         display: flex;
                         justify-content: space-between;
-                        margin-bottom: 4px;
+                        align-items: center;
+                        padding: 8px 12px;
+                        background-color: var(--vscode-editor-inactiveSelectionBackground);
+                        border-radius: 4px;
                         font-size: 12px;
                     }
                     .highlight {
                         font-weight: 600;
+                        color: var(--vscode-textLink-foreground);
                     }
                     .usage-bar {
                         width: 100%;
                         height: 8px;
                         background-color: var(--vscode-progressBar-background);
                         border-radius: 4px;
-                        margin-top: 5px;
+                        margin-top: 8px;
                         overflow: hidden;
                     }
                     .usage-bar-fill {
@@ -370,16 +447,19 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     .usage-label {
                         display: flex;
                         justify-content: space-between;
-                        margin-top: 2px;
-                        font-size: 10px;
+                        margin-top: 4px;
+                        font-size: 11px;
+                        color: var(--vscode-descriptionForeground);
                     }
                     .usage-value {
                         font-weight: 600;
+                        color: var(--vscode-foreground);
                     }
                     .variable-link {
                         color: var(--vscode-textLink-foreground);
                         text-decoration: none;
                         cursor: pointer;
+                        font-weight: 500;
                     }
                     .variable-link:hover {
                         text-decoration: underline;
@@ -387,21 +467,23 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     .file-info {
                         font-size: 11px;
                         color: var(--vscode-descriptionForeground);
+                        margin-top: 2px;
                     }
                     .search-container {
-                        margin: 10px 0;
+                        margin: 15px 0;
                         display: flex;
                         align-items: center;
                         gap: 10px;
                     }
                     .search-input {
                         flex: 1;
-                        padding: 6px 10px;
+                        padding: 8px 12px;
                         border: 1px solid var(--vscode-input-border);
                         background: var(--vscode-input-background);
                         color: var(--vscode-input-foreground);
                         border-radius: 4px;
                         font-size: 12px;
+                        transition: border-color 0.2s ease;
                     }
                     .search-input:focus {
                         outline: none;
@@ -415,6 +497,40 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         padding: 20px;
                         color: var(--vscode-descriptionForeground);
                         font-style: italic;
+                        font-size: 12px;
+                    }
+                    .stats-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                        gap: 15px;
+                        margin-bottom: 15px;
+                    }
+                    .stat-item {
+                        background-color: var(--vscode-editor-inactiveSelectionBackground);
+                        padding: 12px;
+                        border-radius: 4px;
+                        text-align: center;
+                    }
+                    .stat-value {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: var(--vscode-textLink-foreground);
+                        margin-bottom: 4px;
+                    }
+                    .stat-label {
+                        font-size: 11px;
+                        color: var(--vscode-descriptionForeground);
+                    }
+                    @media (max-width: 768px) {
+                        .stats-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .type-counts {
+                            grid-template-columns: 1fr;
+                        }
+                        .variables-table {
+                            min-width: 100%;
+                        }
                     }
                 </style>
             </head>
@@ -422,10 +538,24 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                 <div class="memory-info">
                     <div class="section">
                         <div class="section-title">Memoria del Proyecto Rust</div>
-                        <p>Memoria Física (RSS): <span id="processRss" class="highlight">-</span></p>
-                        <p>Memoria Virtual: <span id="processVsize" class="highlight">-</span></p>
-                        <p>Memoria Total Estimada: <span id="processTotal" class="highlight">-</span></p>
-                        <p>% CPU: <span id="processCpu" class="highlight">-</span>%</p>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="processRss">-</div>
+                                <div class="stat-label">Memoria Física (RSS)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="processVsize">-</div>
+                                <div class="stat-label">Memoria Virtual</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="processTotal">-</div>
+                                <div class="stat-label">Memoria Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="processCpu">-%</div>
+                                <div class="stat-label">Uso de CPU</div>
+                            </div>
+                        </div>
                         
                         <div class="usage-bar">
                             <div id="processUsageBar" class="usage-bar-fill" style="width: 0%; background-color: var(--vscode-terminal-ansiGreen)"></div>
@@ -438,9 +568,20 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     
                     <div class="section">
                         <div class="section-title">Memoria del Sistema</div>
-                        <p>Total: <span id="systemTotal" class="highlight">-</span></p>
-                        <p>Usada: <span id="systemUsed" class="highlight">-</span></p>
-                        <p>Libre: <span id="systemFree" class="highlight">-</span></p>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="systemTotal">-</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="systemUsed">-</div>
+                                <div class="stat-label">Usada</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="systemFree">-</div>
+                                <div class="stat-label">Libre</div>
+                            </div>
+                        </div>
                         
                         <div class="usage-bar">
                             <div id="systemUsageBar" class="usage-bar-fill" style="width: 0%; background-color: var(--vscode-terminal-ansiGreen)"></div>
@@ -453,8 +594,16 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                     
                     <div class="section">
                         <div class="section-title">Variables Rust</div>
-                        <p>Total de Variables: <span id="variablesCount" class="highlight">-</span></p>
-                        <p>Tamaño Total Estimado: <span id="variablesTotal" class="highlight">-</span></p>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="variablesCount">-</div>
+                                <div class="stat-label">Total de Variables</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="variablesTotal">-</div>
+                                <div class="stat-label">Tamaño Total</div>
+                            </div>
+                        </div>
                         
                         <div class="search-container">
                             <input type="text" 
@@ -473,10 +622,10 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             <table class="variables-table">
                                 <thead>
                                     <tr>
-                                        <th><div class="th-content">Variable</div><div class="resizer"></div></th>
-                                        <th><div class="th-content">Declaración</div><div class="resizer"></div></th>
-                                        <th><div class="th-content">Tipo</div><div class="resizer"></div></th>
-                                        <th><div class="th-content">Tamaño</div><div class="resizer"></div></th>
+                                        <th>Variable</th>
+                                        <th>Declaración</th>
+                                        <th>Tipo</th>
+                                        <th>Tamaño</th>
                                     </tr>
                                 </thead>
                                 <tbody id="variablesTableBody">
@@ -540,9 +689,6 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                             row.innerHTML = '<td colspan="4" class="no-results">No se encontraron variables que coincidan con la búsqueda</td>';
                             tableBody.appendChild(row);
                         }
-
-                        // Inicializar resizers después de actualizar la tabla
-                        initializeResizers();
                     }
 
                     // Agregar event listener para la búsqueda
@@ -552,37 +698,6 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                         updateVariablesTable(filteredVariables);
                     });
 
-                    // Agregar funcionalidad de redimensionamiento
-                    function initializeResizers() {
-                        const resizers = document.querySelectorAll('.resizer');
-                        resizers.forEach(resizer => {
-                            let x = 0;
-                            let w = 0;
-
-                            const mouseDownHandler = (e) => {
-                                x = e.clientX;
-                                const th = resizer.parentElement;
-                                w = th.offsetWidth;
-                                
-                                document.addEventListener('mousemove', mouseMoveHandler);
-                                document.addEventListener('mouseup', mouseUpHandler);
-                            };
-
-                            const mouseMoveHandler = (e) => {
-                                const dx = e.clientX - x;
-                                const th = resizer.parentElement;
-                                th.style.width = \`\${w + dx}px\`;
-                            };
-
-                            const mouseUpHandler = () => {
-                                document.removeEventListener('mousemove', mouseMoveHandler);
-                                document.removeEventListener('mouseup', mouseUpHandler);
-                            };
-
-                            resizer.addEventListener('mousedown', mouseDownHandler);
-                        });
-                    }
-
                     window.addEventListener('message', event => {
                         const message = event.data;
                         switch (message.type) {
@@ -591,7 +706,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
                                 document.getElementById('processRss').textContent = message.data.processMemory.rss;
                                 document.getElementById('processVsize').textContent = message.data.processMemory.vsize;
                                 document.getElementById('processTotal').textContent = message.data.processMemory.total;
-                                document.getElementById('processCpu').textContent = message.data.processMemory.pcpu;
+                                document.getElementById('processCpu').textContent = message.data.processMemory.pcpu + '%';
                                 
                                 // Actualizar barra de uso del proceso
                                 const processUsageBar = document.getElementById('processUsageBar');
