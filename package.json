@@ -2,7 +2,7 @@
   "name": "rust-memory-monitor",
   "displayName": "Rust Memory Monitor",
   "description": "Monitor de memoria para proyectos Rust que muestra el uso de memoria del sistema, del proyecto y de las variables",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "publisher": "RustMemoryMonitor",
   "engines": {
     "vscode": "^1.60.0"

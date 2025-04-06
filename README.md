@@ -1,4 +1,4 @@
-# Rust Memory Monitor
+# Rust Memory Monitor v1.1.0
 
 ![Rust Memory Monitor](resources/icon.png)
 
@@ -28,6 +28,22 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
   - Total de variables encontradas
   - Tamaño total estimado
   - Desglose por tipo de variable
+- **Nueva interfaz mejorada** con:
+  - Búsqueda de variables
+  - Redimensionamiento de paneles
+  - Mejor visualización de estadísticas
+  - Cálculos optimizados de memoria
+  - Soporte para todos los tipos de variables por módulo
+
+## Cambios en la versión 1.1.0
+
+- ✨ Nueva interfaz de usuario más intuitiva y responsive
+- 🔍 Agregada funcionalidad de búsqueda de variables
+- 📊 Mejoras en el cálculo de tamaños de variables
+- 🎯 Optimización en el redimensionamiento de paneles
+- 🔄 Soporte completo para variables por módulo
+- 🐛 Correcciones en el cálculo de estimaciones de memoria
+- 🛠️ Mejoras generales de rendimiento y estabilidad
 
 ## Requisitos
 
@@ -152,33 +168,42 @@ SOFTWARE.
 
 ## Historial de Cambios
 
-### v1.0.0 (2024-04-04)
-- Versión inicial del Rust Memory Monitor
-- Implementación básica del monitor de memoria
-- Monitoreo de memoria del sistema y proceso
-- Análisis básico de variables Rust
-- Interfaz web básica
+### v1.1.0 (2024-04-05)
+- ✨ Nueva interfaz de usuario más intuitiva y responsive
+- 🔍 Agregada funcionalidad de búsqueda de variables
+- 📊 Mejoras en el cálculo de tamaños de variables
+- 🎯 Optimización en el redimensionamiento de paneles
+- 🔄 Soporte completo para variables por módulo
+- 🐛 Correcciones en el cálculo de estimaciones de memoria
+- 🛠️ Mejoras generales de rendimiento y estabilidad
 
-### v1.0.1 (2024-04-04)
-- Corrección del nombre en la licencia
-- Mejoras en la documentación
-
-### v1.0.2 (2024-04-04)
+### v1.0.5 (2024-04-04)
+- Corrección de problemas de redimensionamiento
 - Mejoras en la interfaz de usuario
-- Optimizaciones de rendimiento
-- Mejor visualización de datos
-
-### v1.0.3 (2024-04-04)
-- Soporte mejorado para análisis de variables por módulo
-- Mejora en la detección de variables
-- Optimización del análisis de código
+- Optimización del rendimiento
 
 ### v1.0.4 (2024-04-04)
 - Implementación de funcionalidad de búsqueda
 - Filtrado de variables en tiempo real
 - Mejora en la experiencia de usuario
 
-### v1.0.5 (2024-04-04)
-- Corrección de problemas de redimensionamiento
+### v1.0.3 (2024-04-04)
+- Soporte mejorado para análisis de variables por módulo
+- Mejora en la detección de variables
+- Optimización del análisis de código
+
+### v1.0.2 (2024-04-04)
 - Mejoras en la interfaz de usuario
-- Optimización del rendimiento 
+- Optimizaciones de rendimiento
+- Mejor visualización de datos
+
+### v1.0.1 (2024-04-04)
+- Corrección del nombre en la licencia
+- Mejoras en la documentación
+
+### v1.0.0 (2024-04-04)
+- Versión inicial del Rust Memory Monitor
+- Implementación básica del monitor de memoria
+- Monitoreo de memoria del sistema y proceso
+- Análisis básico de variables Rust
+- Interfaz web básica 
