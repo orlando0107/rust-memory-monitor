@@ -79,5 +79,19 @@
   "galleryBanner": {
     "color": "#DEA584",
     "theme": "dark"
-  }
+  },
+  "screenshots": [
+    {
+      "path": "capturs/Captura desde 2025-04-06 15-11-38.png",
+      "alt": "Vista principal del monitor de memoria"
+    },
+    {
+      "path": "capturs/Captura desde 2025-04-06 15-11-52.png",
+      "alt": "Análisis detallado de variables"
+    },
+    {
+      "path": "capturs/Captura desde 2025-04-06 15-12-32.png",
+      "alt": "Estadísticas y métricas"
+    }
+  ]
 } 

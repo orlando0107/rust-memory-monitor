@@ -35,6 +35,14 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
   - Cálculos optimizados de memoria
   - Soporte para todos los tipos de variables por módulo
 
+## Capturas de Pantalla
+
+![Vista principal del monitor de memoria](capturs/Captura%20desde%202025-04-06%2015-11-38.png)
+
+![Análisis detallado de variables](capturs/Captura%20desde%202025-04-06%2015-11-52.png)
+
+![Estadísticas y métricas](capturs/Captura%20desde%202025-04-06%2015-12-32.png)
+
 ## Cambios en la versión 1.1.0
 
 - ✨ Nueva interfaz de usuario más intuitiva y responsive
