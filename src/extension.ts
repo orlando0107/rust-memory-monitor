@@ -19,7 +19,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
+        _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
         this._view = webviewView;
@@ -702,7 +702,7 @@ class MemoryMonitorProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
+    private _getHtmlForWebview(_webview: vscode.Webview) {
         return `
             <!DOCTYPE html>
             <html lang="en">
@@ -1201,7 +1201,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(MemoryMonitorProvider.viewType, provider)
     );
 
-    let disposable = vscode.commands.registerCommand('rust-memory-monitor.startMonitoring', () => {
+    const disposable = vscode.commands.registerCommand('rust-memory-monitor.startMonitoring', () => {
         vscode.window.showInformationMessage('Monitor de memoria iniciado!');
     });
 
