@@ -48,6 +48,11 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
 - 🖥️ **Soporte multiplataforma**: Compatible con Windows 10/11 y todas las distribuciones de Linux
 - 🔒 **Auditoría de seguridad automatizada**: Dependabot + GitHub Actions para mantener dependencias actualizadas
 - 🛠️ Reemplazo de comandos Linux-only (`find`, `ps`, `free`) por APIs cross-platform de Node.js (`os`, `fs`)
+- 📊 **Estimaciones de memoria realistas**: Análisis de stack + heap por variable (antes solo mostraba stack)
+- 🧠 **Detección completa de declaraciones Rust**: `let`, `const`, `static`, `fn`, `const fn`, `async fn`, `unsafe fn`, `extern "C" fn`, `struct`, `enum`, `union`, `trait`, `impl`, `type`, `mod`, `macro_rules!`, `use`, `extern crate`, `extern` blocks y closures
+- ⚠️ **Indicador de proceso**: Mensaje claro cuando no hay un proceso Rust en ejecución (antes mostraba 0 KB)
+- 🔄 **Tabla de variables mejorada**: Columnas separadas para Stack, Heap (estimado) y Total con formato legible (B, KB, MB)
+- 🔧 **Dependencias actualizadas**: eslint 10, TypeScript 5.7, mocha 11 — **0 vulnerabilidades**
 - 📖 Documentación actualizada con prerequisitos de instalación
 
 ## Cambios en la versión 1.1.0
@@ -203,6 +208,11 @@ SOFTWARE.
 - 🔒 Configuración de Dependabot para actualizaciones automáticas de dependencias
 - 🔍 GitHub Actions workflow para auditoría de seguridad semanal
 - 🛠️ Reemplazo de `find`, `ps`, `free` por APIs cross-platform (`os`, `fs`)
+- 📊 Estimaciones de memoria realistas: stack + heap con análisis de inicialización
+- 🧠 Detección completa de todas las declaraciones de Rust (13 tipos de items)
+- ⚠️ Indicador claro cuando no hay proceso Rust en ejecución
+- 🔄 Tabla con columnas Stack / Heap (est.) / Total y formato legible
+- 🔧 Dependencias actualizadas: eslint 10, TypeScript 5.7, mocha 11 — 0 vulnerabilidades
 - 📖 Documentación actualizada con prerequisitos de desarrollo
 
 ### v1.1.0 (2024-04-05)
