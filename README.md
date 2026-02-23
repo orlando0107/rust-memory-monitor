@@ -1,4 +1,4 @@
-# Rust Memory Monitor v1.1.0
+# Rust Memory Monitor v1.2.0
 
 ![Rust Memory Monitor](resources/icon.png)
 
@@ -43,6 +43,13 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
 
 ![Estadísticas y métricas](capturs/Captura%20desde%202025-04-06%2015-12-32.png)
 
+## Cambios en la versión 1.2.0
+
+- 🖥️ **Soporte multiplataforma**: Compatible con Windows 10/11 y todas las distribuciones de Linux
+- 🔒 **Auditoría de seguridad automatizada**: Dependabot + GitHub Actions para mantener dependencias actualizadas
+- 🛠️ Reemplazo de comandos Linux-only (`find`, `ps`, `free`) por APIs cross-platform de Node.js (`os`, `fs`)
+- 📖 Documentación actualizada con prerequisitos de instalación
+
 ## Cambios en la versión 1.1.0
 
 - ✨ Nueva interfaz de usuario más intuitiva y responsive
@@ -56,8 +63,17 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
 ## Requisitos
 
 - Visual Studio Code 1.60.0 o superior
-- Sistema operativo Linux (por el momento)
+- **Windows 10/11** o **Linux** (todas las distribuciones)
 - Proyecto Rust con archivos `.rs`
+
+### Prerequisitos para desarrollo (clonar el proyecto)
+
+- [Node.js](https://nodejs.org/) v16 o superior
+- npm (incluido con Node.js)
+- [vsce](https://github.com/microsoft/vscode-vsce) para empaquetar la extensión:
+  ```bash
+  npm install -g @vscode/vsce
+  ```
 
 ## Instalación
 
@@ -84,11 +100,17 @@ Una extensión para Visual Studio Code que monitorea el uso de memoria en proyec
    ```bash
    npm run compile
    ```
-5. Empaqueta la extensión:
+5. **Probar la extensión en modo desarrollo:**
+   - Presiona `F5` en VS Code (abrirá una nueva ventana de VS Code con la extensión cargada)
+   - O desde la terminal:
+     ```bash
+     code --extensionDevelopmentPath=.
+     ```
+6. Empaqueta la extensión:
    ```bash
    vsce package
    ```
-6. Instala el archivo .vsix generado en VS Code
+7. Instala el archivo .vsix generado en VS Code
 
 ## Uso
 
@@ -175,6 +197,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ## Historial de Cambios
+
+### v1.2.0 (2026-02-23)
+- 🖥️ Soporte multiplataforma: Windows 10/11 + todas las distribuciones de Linux
+- 🔒 Configuración de Dependabot para actualizaciones automáticas de dependencias
+- 🔍 GitHub Actions workflow para auditoría de seguridad semanal
+- 🛠️ Reemplazo de `find`, `ps`, `free` por APIs cross-platform (`os`, `fs`)
+- 📖 Documentación actualizada con prerequisitos de desarrollo
 
 ### v1.1.0 (2024-04-05)
 - ✨ Nueva interfaz de usuario más intuitiva y responsive
